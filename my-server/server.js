@@ -18,7 +18,7 @@ app.post('/ai', async (req, res) => {
         'X-Title': 'AI Chat'
       },
       body: JSON.stringify({
-        model: 'meta-llama/llama-3.1-8b-instruct:free',
+        model: 'model: 'google/gemma-3-4b-it:free',
         messages: [
           { role: 'system', content: system || 'اپ ایک مددگار اے ائی ہو' },
           { role: 'user', content: message }
