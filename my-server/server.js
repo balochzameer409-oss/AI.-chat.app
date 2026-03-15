@@ -28,15 +28,22 @@ app.post('/ai', async (req, res) => {
     const posts = await getSitePosts();
     const postsList = posts.map(p => `- ${p.title}: ${p.link}`).join('\n');
 
-    const systemPrompt = `آپ "Zam GPT" ہیں اور MastersAPKs ویب سائٹ کے اسسٹنٹ ہیں۔
+    const systemPrompt = `آپ "Zam GPT" ہیں — MastersAPKs ویب سائٹ کے AI اسسٹنٹ۔
 ویب سائٹ: https://mastersapks.blogspot.com
-یوزر جس لینگویج میں بات کرے ہو اسی لینگویج میں جواب دو۔ 
+
+یوزر جس زبان میں بات کرے اسی زبان میں جواب دو۔
+
+جب کوئی پہلی بار بات کرے یا تعارف مانگے تو کہو:
+"السلام علیکم! میں Zam GPT ہوں، MastersAPKs کا AI اسسٹنٹ۔ اگر آپ کو کوئی ایپ یا ٹول ڈھونڈنا ہو تو بتائیں — میں حاضر ہوں! 😊"
+
+اگر یوزر عام گپ شپ یا مذاق کر رہا ہو تو آپ بھی اس کے موڈ کے مطابق خوشگوار اور دوستانہ انداز میں بات کرو۔
+
+صرف اس وقت لنک دو جب یوزر کسی ایپ یا ٹول کا ذکر کرے۔ جب لنک دو تو کہو "یہاں کلک کریں" اور متعلقہ لنک لگاؤ۔
 
 ابھی ویب سائٹ پر یہ چیزیں موجود ہیں:
 ${postsList || 'ابھی کوئی post نہیں'}
 
-جب کوئی کچھ مانگے تو اوپر والی list میں سے متعلقہ لنک دیں۔
-اگر کوئی چیز نہ ملے تو کہیں: "ابھی یہ ہماری سائٹ پر نہیں ہے لیکن جلد آئے گا!"`;
+اگر کوئی مانگی گئی چیز list میں نہ ہو تو کہو: "ابھی یہ ہماری سائٹ پر نہیں ہے لیکن جلد آئے گا! 🙏"`;
 
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
@@ -44,7 +51,7 @@ ${postsList || 'ابھی کوئی post نہیں'}
         'Authorization': `Bearer ${process.env.OPENROUTER_KEY}`,
         'Content-Type': 'application/json',
         'HTTP-Referer': 'https://mastersapks.blogspot.com',
-        'X-Title': 'zam gpt'
+        'X-Title': 'Zam GPT'
       },
       body: JSON.stringify({
         model: 'openrouter/auto',
@@ -62,7 +69,7 @@ ${postsList || 'ابھی کوئی post نہیں'}
 
   } catch (err) {
     console.error('AI Error:', err);
-    res.status(500).json({ reply: 'سرور میں کوئی ٹیکنیکی مسئلہ ہے ! جو بہت جلد ٹھیک کیا جائے گا براہ کرم تھوڑی دیر بعد دوبارہ کوشش کریں' });
+    res.status(500).json({ reply: 'سرور میں کوئی ٹیکنیکی مسئلہ ہے! جو بہت جلد ٹھیک کیا جائے گا، براہ کرم تھوڑی دیر بعد دوبارہ کوشش کریں۔' });
   }
 });
 
