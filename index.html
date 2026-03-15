@@ -449,7 +449,7 @@ body.dark-mode .menu-item:hover {
   font-weight: 500;
   box-shadow: none;
   border-radius: 0;
-  padding: 1px 4px;
+  padding: 10px 4px;
   max-width: 100%;
   width: 100%;
 }
@@ -1010,7 +1010,7 @@ const chatForm = document.getElementById('chat-form');
 const userInput = document.getElementById('user-input');
 const voiceRecordBtn = document.getElementById('voiceRecordBtn');
 const sendBtn = document.getElementById('sendBtn');
-const toggleVoiceBtn = document.getElementById('toggle-voice');
+const toggleVoiceBtn = document.getElementById('toggle-voice') || {};
 const charCounter = document.getElementById('charCounter');
 const inputWrapper = document.getElementById('inputWrapper');
 const scrollBottomBtn = document.getElementById('scrollBottomBtn');
@@ -1396,7 +1396,10 @@ async function callAPI() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         message: sessionMessages[sessionMessages.length - 1].content,
-        system: 'آپ ایک مددگار AI اور https://mastersapks.blogspot.com ویب سائٹ کے اسسٹنٹ ہیں۔ لوگوں کو اس ویب سائٹ سے ایپس اور ٹولز تلاش کر کے دیں۔ ہمیشہ اردو میں جواب دیں۔'
+        history: sessionMessages.slice(0, -1).map(m => ({
+          role: m.role,
+          content: m.content
+        }))
       }),
       signal: controller.signal
     });
