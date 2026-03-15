@@ -987,7 +987,6 @@ const ELEVENLABS_VOICE_ID = "21m00Tcm4TlvDq8ikWAM";
 // ========================================
 // ✅ STATE VARIABLES
 // ========================================
-let autoSpeakEnabled = false;
 let voiceSpeed = 1.0;
 let sessionMessages = [];
 let isProcessing = false;
@@ -1010,7 +1009,7 @@ const chatForm = document.getElementById('chat-form');
 const userInput = document.getElementById('user-input');
 const voiceRecordBtn = document.getElementById('voiceRecordBtn');
 const sendBtn = document.getElementById('sendBtn');
-const toggleVoiceBtn = document.getElementById('toggle-voice') || {};
+
 const charCounter = document.getElementById('charCounter');
 const inputWrapper = document.getElementById('inputWrapper');
 const scrollBottomBtn = document.getElementById('scrollBottomBtn');
@@ -1272,12 +1271,12 @@ function appendBotMessage(text, timestamp = Date.now()) {
   const copyBtn = document.createElement('button');
   copyBtn.className = 'btn-copy';
   copyBtn.textContent = '📋 Copy All';
-  copyBtn.onclick = () => copyText(text);
+  copyBtn.onclick = () => copyText(contentDiv.innerText);
   
   const speakBtn = document.createElement('button');
   speakBtn.className = 'btn-speak';
   speakBtn.textContent = '🔊 Voice';
-  speakBtn.onclick = () => speak(text, true);
+  speakBtn.onclick = () => speak(contentDiv.innerText, true);
   
   actionsDiv.append(copyBtn, speakBtn);
   div.appendChild(actionsDiv);
@@ -1700,7 +1699,7 @@ window.closeModal = function(modalId) {
 }
 
 async function speak(text, manual = false) {
-  if (!autoSpeakEnabled && !manual) return;
+  // manual check removed - آواز automatically آئے گی
 
   // HTML tags ہٹاؤ
   text = text.replace(/<[^>]*>/g, '').trim();
@@ -1724,27 +1723,39 @@ async function speak(text, manual = false) {
     });
 
     if (res.ok) {
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const audio = new Audio(url);
-      audio.controls = false;
-      document.body.appendChild(audio);
-      const playPromise = audio.play();
-      if (playPromise !== undefined) {
-        playPromise.catch(() => {
-          // autoplay blocked - try with user gesture
-          audio.muted = false;
-          audio.play();
-        });
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('audio')) {
+        const arrayBuffer = await res.arrayBuffer();
+        const blob = new Blob([arrayBuffer], { type: 'audio/mpeg' });
+        const url = URL.createObjectURL(blob);
+
+        const audio = document.createElement('audio');
+        const source = document.createElement('source');
+        source.src = url;
+        source.type = 'audio/mpeg';
+        audio.appendChild(source);
+        audio.style.display = 'none';
+        document.body.appendChild(audio);
+        audio.load();
+        try {
+          await audio.play();
+        } catch(playErr) {
+          console.log('Play error:', playErr);
+        }
+        audio.onended = () => {
+          URL.revokeObjectURL(url);
+          if (document.body.contains(audio)) document.body.removeChild(audio);
+        };
+        return;
+      } else {
+        const errData = await res.json();
+        console.log('TTS error response:', errData);
       }
-      audio.onended = () => {
-        URL.revokeObjectURL(url);
-        document.body.removeChild(audio);
-      };
-      return;
+    } else {
+      console.log('TTS HTTP error:', res.status);
     }
   } catch(e) {
-    console.log('ElevenLabs خطا، Browser TTS استعمال ہوگی');
+    console.log('ElevenLabs خطا:', e.message);
   }
 
   // Fallback: Browser TTS
@@ -2054,7 +2065,6 @@ chatForm.addEventListener('submit', async (e) => {
   
   sessionMessages.push({ role: 'assistant', content: reply, timestamp });
   saveCurrentSession();
-  speak(reply);
   
   isProcessing = false;
   sendBtn.disabled = false;
