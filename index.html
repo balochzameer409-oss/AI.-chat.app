@@ -883,7 +883,7 @@ body.dark-mode .menu-item:hover {
     </div>
   </div>
   <div class="header-right">
-    <button id="toggle-voice" class="voice-toggle-btn">🎙️ Voice</button>
+
   </div>
 </div>
 
@@ -972,7 +972,7 @@ const ELEVENLABS_VOICE_ID = "21m00Tcm4TlvDq8ikWAM";
 // ========================================
 // ✅ STATE VARIABLES
 // ========================================
-let autoSpeakEnabled = true;
+let autoSpeakEnabled = false;
 let voiceSpeed = 1.0;
 let sessionMessages = [];
 let isProcessing = false;
@@ -1139,6 +1139,9 @@ function createCodeBlock(code, language = 'plaintext') {
 function parseMarkdown(text) {
   if (!text) return '';
   
+  // Markdown links کو clickable بناؤ
+  text = text.replace(/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g, 
+    '<a href="$2" target="_blank" style="color:#667eea; font-weight:bold; text-decoration:underline; cursor:pointer;">$1</a>');
   text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
   text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
@@ -1217,7 +1220,7 @@ function appendUserMessage(text, timestamp = Date.now()) {
   const speakBtn = document.createElement('button');
   speakBtn.className = 'btn-speak';
   speakBtn.textContent = '🔊 Voice';
-  speakBtn.onclick = () => speak(text);
+  speakBtn.onclick = () => speak(text, true);
   
   actionsDiv.append(copyBtn, speakBtn);
   div.appendChild(actionsDiv);
@@ -1256,7 +1259,7 @@ function appendBotMessage(text, timestamp = Date.now()) {
   const speakBtn = document.createElement('button');
   speakBtn.className = 'btn-speak';
   speakBtn.textContent = '🔊 Voice';
-  speakBtn.onclick = () => speak(text);
+  speakBtn.onclick = () => speak(text, true);
   
   actionsDiv.append(copyBtn, speakBtn);
   div.appendChild(actionsDiv);
@@ -1672,11 +1675,18 @@ window.closeModal = function(modalId) {
   document.getElementById(modalId).classList.remove('show');
 }
 
-async function speak(text) {
-  if (!autoSpeakEnabled) return;
+async function speak(text, manual = false) {
+  if (!autoSpeakEnabled && !manual) return;
 
   // HTML tags ہٹاؤ
   text = text.replace(/<[^>]*>/g, '').trim();
+  // Markdown links ہٹاؤ
+  text = text.replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1');
+  // URLs ہٹاؤ
+  text = text.replace(/https?:\/\/\S+/g, '');
+  // ** ہٹاؤ
+  text = text.replace(/\*\*/g, '');
+  text = text.trim();
   if (!text) return;
 
   speechSynthesis.cancel(); // پرانی آواز بند
@@ -1934,13 +1944,7 @@ scrollBottomBtn.addEventListener('click', () => {
 });
 
 // Voice toggle
-toggleVoiceBtn.onclick = function() {
-  autoSpeakEnabled = !autoSpeakEnabled;
-  this.textContent = autoSpeakEnabled ? "🎙️ Voice" : "🔇 Muted";
-  this.classList.toggle('muted');
-  localStorage.setItem('voiceEnabled', autoSpeakEnabled);
-  showToast(autoSpeakEnabled ? "✅ Voice On" : "🔇 Voice Off", 'success');
-};
+// voice toggle removed
 
 // Voice recording
 voiceRecordBtn.addEventListener('click', () => {
@@ -2033,12 +2037,7 @@ initSpeechRecognition();
 const savedSpeed = localStorage.getItem('voiceSpeed');
 if (savedSpeed) voiceSpeed = parseFloat(savedSpeed);
 
-const savedVoicePreference = localStorage.getItem('voiceEnabled');
-if (savedVoicePreference !== null) {
-  autoSpeakEnabled = savedVoicePreference === 'true';
-  toggleVoiceBtn.textContent = autoSpeakEnabled ? "🎙️ Voice" : "🔇 Muted";
-  if (!autoSpeakEnabled) toggleVoiceBtn.classList.add('muted');
-}
+// voice preference removed
 
 // ✅ Cleanup on page unload
 window.addEventListener('beforeunload', () => {
