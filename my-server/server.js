@@ -6,7 +6,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ========== RSS Feed سے posts لاؤ ==========
 async function getSitePosts() {
   try {
     const res = await fetch('https://mastersapks.blogspot.com/feeds/posts/default?alt=json&max-results=50');
@@ -21,9 +20,8 @@ async function getSitePosts() {
   }
 }
 
-// ========== OpenRouter AI ==========
 app.post('/ai', async (req, res) => {
-  const { message } = req.body;
+  const { message, history = [] } = req.body;
   try {
     const posts = await getSitePosts();
     const postsList = posts.map(p => `- ${p.title}: ${p.link}`).join('\n');
@@ -57,6 +55,7 @@ ${postsList || 'ابھی کوئی post نہیں'}
         model: 'openrouter/auto',
         messages: [
           { role: 'system', content: systemPrompt },
+          ...history,
           { role: 'user', content: message }
         ]
       })
@@ -69,11 +68,10 @@ ${postsList || 'ابھی کوئی post نہیں'}
 
   } catch (err) {
     console.error('AI Error:', err);
-    res.status(500).json({ reply: 'سرور میں کوئی ٹیکنیکی مسئلہ ہے! جو بہت جلد ٹھیک کیا جائے گا، براہ کرم تھوڑی دیر بعد دوبارہ کوشش کریں۔' });
+    res.status(500).json({ reply: 'سرور میں کوئی ٹیکنیکی مسئلہ ہے! براہ کرم تھوڑی دیر بعد دوبارہ کوشش کریں۔' });
   }
 });
 
-// ========== ElevenLabs TTS ==========
 app.post('/tts', async (req, res) => {
   const { message } = req.body;
   try {
