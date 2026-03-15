@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const fetch = require('node-fetch');
+const { EdgeTTS } = require('@andresaya/edge-tts');
 
 const app = express();
 app.use(cors());
@@ -62,7 +63,6 @@ ${postsList || 'ابھی کوئی post نہیں'}
     });
 
     const data = await response.json();
-    console.log('OpenRouter response:', JSON.stringify(data));
     const reply = data.choices?.[0]?.message?.content || 'کوئی جواب نہیں ملا براہ کرم دوبارہ کوشش کریں';
     res.json({ reply });
 
@@ -76,46 +76,29 @@ app.post('/tts', async (req, res) => {
   const { message } = req.body;
   try {
     console.log('TTS request:', message?.substring(0, 50));
-    console.log('ElevenLabs key exists:', !!process.env.ELEVENLABS_KEY);
 
-    const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM', {
-      method: 'POST',
-      headers: {
-        'xi-api-key': process.env.ELEVENLABS_KEY,
-        'Content-Type': 'application/json',
-        'Accept': 'audio/mpeg',
-      },
-      body: JSON.stringify({
-        text: message,
-        model_id: 'eleven_multilingual_v2',
-        voice_settings: { stability: 0.5, similarity_boost: 0.75 }
-      })
+    const isUrdu = /[\u0600-\u06FF]/.test(message || '');
+    const voice = isUrdu ? 'ur-PK-AsadNeural' : 'en-US-AriaNeural';
+    console.log('Using voice:', voice);
+
+    const tts = new EdgeTTS();
+    await tts.synthesize(message, voice, {
+      rate: '-10%',
+      pitch: '+0Hz',
+      volume: '+0%',
+      outputFormat: 'audio-24khz-96kbitrate-mono-mp3'
     });
 
-    console.log('ElevenLabs status:', response.status);
-    console.log('ElevenLabs content-type:', response.headers.get('content-type'));
-
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error('ElevenLabs error response:', errText);
-      return res.status(500).json({ error: errText });
-    }
-
-    const buffer = await response.buffer();
-    console.log('Audio buffer size:', buffer.length);
-
-    if (buffer.length < 1000) {
-      const errText = buffer.toString('utf8');
-      console.error('Buffer too small, likely error:', errText);
-      return res.status(500).json({ error: errText });
-    }
+    const audioBase64 = tts.toBase64();
+    const audioBuffer = Buffer.from(audioBase64, 'base64');
+    console.log('Audio size:', audioBuffer.length);
 
     res.set('Content-Type', 'audio/mpeg');
-    res.send(buffer);
+    res.send(audioBuffer);
 
   } catch (err) {
     console.error('TTS Error:', err);
-    res.status(500).json({ error: 'TTS خطا' });
+    res.status(500).json({ error: 'TTS خطا: ' + err.message });
   }
 });
 
