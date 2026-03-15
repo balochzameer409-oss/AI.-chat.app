@@ -237,8 +237,7 @@ body.dark-mode .typing-indicator {
 .code-content .value { color: #032f62; }
 
 .chat-header {
-  background: transparent;
-  backdrop-filter: blur(10px);
+  background: #ffffff;
   padding: 6px 12px;
   display: flex;
   justify-content: space-between;
@@ -247,6 +246,12 @@ body.dark-mode .typing-indicator {
   top: 0;
   width: 100%;
   z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+body.dark-mode .chat-header {
+  background: #1a1a2e;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
 
 .header-right {
@@ -389,21 +394,22 @@ body.dark-mode .menu-item:hover {
   text-align: center;
   font-size: 18px;
   font-weight: 600;
-  margin: 40px 20px;
   color: #666;
-  animation: fadeIn 1s ease;
+  animation: fadeIn 0.5s ease;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
 }
 
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
+
+
+
 
 .message {
   font-size: 18px;
@@ -433,14 +439,23 @@ body.dark-mode .menu-item:hover {
   color: black;
   font-weight: 500;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  max-width: 80%;
 }
 
 .bot {
   align-self: flex-start;
-  background: #f9f9f9;
+  background: transparent;
   color: #000;
   font-weight: 500;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: none;
+  border-radius: 0;
+  padding: 1px 4px;
+  max-width: 100%;
+  width: 100%;
+}
+
+body.dark-mode .bot {
+  color: #fff;
 }
 
 .message-content {
@@ -1141,7 +1156,10 @@ function parseMarkdown(text) {
   
   // Markdown links کو clickable بناؤ
   text = text.replace(/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g, 
-    '<a href="$2" target="_blank" style="color:#667eea; font-weight:bold; text-decoration:underline; cursor:pointer;">$1</a>');
+    '<a href="$2" target="_blank" style="color:#1a73e8; font-weight:bold; text-decoration:underline; cursor:pointer;">$1</a>');
+  // Plain URLs کو clickable بناؤ
+  text = text.replace(/(^|[\s\n])(https?:\/\/[^\s<]+)/g, 
+    '$1<a href="$2" target="_blank" style="color:#1a73e8; font-weight:bold; text-decoration:underline; cursor:pointer;">$2</a>');
   text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
   text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
@@ -1534,21 +1552,24 @@ function loadCurrentSession() {
   const sessions = JSON.parse(localStorage.getItem('sessions') || '{}');
   const session = sessions[currentSessionId];
   
+  chatBox.innerHTML = '';
+
   if (session) {
-    chatBox.innerHTML = '';
     sessionMessages = session.messages || [];
-    
-    if (sessionMessages.length === 0) {
-      showWelcomeMessage();
-    } else {
-      sessionMessages.forEach(msg => {
-        if (msg.role === 'user') {
-          appendUserMessage(msg.content, msg.timestamp);
-        } else {
-          appendBotMessage(msg.content, msg.timestamp);
-        }
-      });
-    }
+  } else {
+    sessionMessages = [];
+  }
+
+  if (sessionMessages.length === 0) {
+    showWelcomeMessage();
+  } else {
+    sessionMessages.forEach(msg => {
+      if (msg.role === 'user') {
+        appendUserMessage(msg.content, msg.timestamp);
+      } else {
+        appendBotMessage(msg.content, msg.timestamp);
+      }
+    });
   }
 }
 
@@ -2013,7 +2034,8 @@ chatForm.addEventListener('submit', async (e) => {
   
   typingIndicator.remove();
   
-  const contentDiv = appendBotMessage(reply, timestamp);
+  const contentDiv = appendBotMessage('', timestamp);
+  await typeMessage(contentDiv, reply);
   
   sessionMessages.push({ role: 'assistant', content: reply, timestamp });
   saveCurrentSession();
