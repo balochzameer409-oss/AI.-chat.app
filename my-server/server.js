@@ -77,13 +77,13 @@ app.post('/tts', async (req, res) => {
   try {
     console.log('TTS request:', message?.substring(0, 50));
 
-    const isUrdu = /[\u0600-\u06FF]/.test(message || '');
-    const voice = isUrdu ? 'ur-PK-AsadNeural' : 'en-US-AriaNeural';
+    // ہمیشہ ur-PK-AsadNeural — یہ انگلش بھی پڑھتا ہے
+    const voice = 'ur-PK-AsadNeural';
     console.log('Using voice:', voice);
 
     const tts = new EdgeTTS();
     await tts.synthesize(message, voice, {
-      rate: '-10%',
+      rate: '-9%',
       pitch: '+0Hz',
       volume: '+0%',
       outputFormat: 'audio-24khz-96kbitrate-mono-mp3'
