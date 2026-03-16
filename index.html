@@ -1699,22 +1699,16 @@ window.closeModal = function(modalId) {
 }
 
 async function speak(text, manual = false) {
-  // manual check removed - آواز automatically آئے گی
-
-  // HTML tags ہٹاؤ
   text = text.replace(/<[^>]*>/g, '').trim();
-  // Markdown links ہٹاؤ
   text = text.replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1');
-  // URLs ہٹاؤ
   text = text.replace(/https?:\/\/\S+/g, '');
-  // ** ہٹاؤ
   text = text.replace(/\*\*/g, '');
   text = text.trim();
   if (!text) return;
 
-  speechSynthesis.cancel(); // پرانی آواز بند
+  speechSynthesis.cancel();
 
-  // ElevenLabs Worker سے
+  // Edge TTS (Microsoft Natural Voice)
   try {
     const res = await fetch(WORKER_URL + '/tts', {
       method: 'POST',
@@ -1723,58 +1717,67 @@ async function speak(text, manual = false) {
     });
 
     if (res.ok) {
-      const contentType = res.headers.get('content-type') || '';
-      if (contentType.includes('audio')) {
-        const arrayBuffer = await res.arrayBuffer();
-        const blob = new Blob([arrayBuffer], { type: 'audio/mpeg' });
-        const url = URL.createObjectURL(blob);
-
-        const audio = document.createElement('audio');
-        const source = document.createElement('source');
-        source.src = url;
-        source.type = 'audio/mpeg';
-        audio.appendChild(source);
-        audio.style.display = 'none';
-        document.body.appendChild(audio);
-        audio.load();
-        try {
-          await audio.play();
-        } catch(playErr) {
-          console.log('Play error:', playErr);
-        }
-        audio.onended = () => {
-          URL.revokeObjectURL(url);
-          if (document.body.contains(audio)) document.body.removeChild(audio);
-        };
-        return;
-      } else {
-        const errData = await res.json();
-        console.log('TTS error response:', errData);
+      const arrayBuffer = await res.arrayBuffer();
+      const blob = new Blob([arrayBuffer], { type: 'audio/mpeg' });
+      const url = URL.createObjectURL(blob);
+      const audio = document.createElement('audio');
+      const source = document.createElement('source');
+      source.src = url;
+      source.type = 'audio/mpeg';
+      audio.appendChild(source);
+      audio.style.display = 'none';
+      document.body.appendChild(audio);
+      audio.load();
+      try {
+        await audio.play();
+      } catch(playErr) {
+        console.log('Play error:', playErr);
       }
-    } else {
-      console.log('TTS HTTP error:', res.status);
+      audio.onended = () => {
+        URL.revokeObjectURL(url);
+        if (document.body.contains(audio)) document.body.removeChild(audio);
+      };
+      return;
     }
   } catch(e) {
-    console.log('ElevenLabs خطا:', e.message);
+    console.log('Edge TTS خطا:', e.message);
   }
 
   // Fallback: Browser TTS
-  const cleanText = text.replace(/[^\u0600-\u06FFa-zA-Z0-9\s.,؟!]/g, '').trim();
+  const cleanText = text.replace(/[^\u0600-\u06FFa-zA-Z0-9\s.,؟!۔،]/g, '').trim();
   if (!cleanText) return;
 
-  const utter = new SpeechSynthesisUtterance(cleanText);
   const isUrdu = /[\u0600-\u06FF]/.test(cleanText);
-  utter.lang = isUrdu ? 'ur-PK' : 'en-US';
-  utter.rate = 0.9;
-  utter.pitch = 1.0;
-  utter.volume = 1.0;
+  const utter = new SpeechSynthesisUtterance(cleanText);
+
+  if (isUrdu) {
+    utter.lang = 'ur-PK';
+    utter.rate = 0.8;
+    utter.pitch = 1.1;
+    utter.volume = 1.0;
+  } else {
+    utter.lang = 'en-US';
+    utter.rate = 0.85;
+    utter.pitch = 1.0;
+    utter.volume = 1.0;
+  }
 
   const setVoice = () => {
     const voices = speechSynthesis.getVoices();
-    const best = voices.find(v => v.name.includes('Google') && v.lang.startsWith('en'))
-      || voices.find(v => v.lang.startsWith('en'))
-      || voices[0];
+    let best = null;
+    if (isUrdu) {
+      best = voices.find(v => v.lang === 'ur-PK' && v.name.includes('Google'))
+        || voices.find(v => v.lang === 'ur-PK')
+        || voices.find(v => v.lang.startsWith('ur'));
+    }
+    if (!best) {
+      best = voices.find(v => v.name.includes('Google') && v.lang === 'en-US')
+        || voices.find(v => v.name.includes('Microsoft') && v.lang === 'en-US')
+        || voices.find(v => v.lang === 'en-US')
+        || voices[0];
+    }
     if (best) utter.voice = best;
+    speechSynthesis.cancel();
     speechSynthesis.speak(utter);
   };
 
@@ -1784,6 +1787,7 @@ async function speak(text, manual = false) {
     speechSynthesis.onvoiceschanged = setVoice;
   }
 }
+
 
 function copyText(text) {
   text = text.replace(/<[^>]*>/g, '');
