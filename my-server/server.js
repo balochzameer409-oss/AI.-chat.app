@@ -9,7 +9,7 @@ app.use(express.json());
 
 async function getSitePosts() {
   try {
-    const res = await fetch('https://mastersapks.blogspot.com/feeds/posts/default?alt=json&max-results=50');
+    const res = await fetch('https://apkdoon.blogspot.com/feeds/posts/default?alt=json&max-results=50');
     const data = await res.json();
     const entries = data.feed.entry || [];
     return entries.map(entry => ({
@@ -27,13 +27,13 @@ app.post('/ai', async (req, res) => {
     const posts = await getSitePosts();
     const postsList = posts.map(p => `- ${p.title}: ${p.link}`).join('\n');
 
-    const systemPrompt = `آپ "Zam GPT" ہیں — MastersAPKs ویب سائٹ کے AI اسسٹنٹ۔
-ویب سائٹ: https://mastersapks.blogspot.com
+    const systemPrompt = `آپ "Zam GPT" ہیں — apkdoon ویب سائٹ کے AI اسسٹنٹ۔
+ویب سائٹ: https://apkdoon.blogspot.com
 
 یوزر جس زبان میں بات کرے اسی زبان میں جواب دو۔
 
 جب کوئی پہلی بار بات کرے یا تعارف مانگے تو کہو:
-"السلام علیکم! میں Zam GPT ہوں، MastersAPKs کا AI اسسٹنٹ۔ اگر آپ کو کوئی ایپ یا ٹول ڈھونڈنا ہو تو بتائیں — میں حاضر ہوں! 😊"
+"السلام علیکم! میں Zam GPT ہوں، apkdoon کا AI اسسٹنٹ۔ اگر آپ کو کوئی ایپ یا ٹول ڈھونڈنا ہو تو بتائیں — میں حاضر ہوں! 😊"
 
 اگر یوزر عام گپ شپ یا مذاق کر رہا ہو تو آپ بھی اس کے موڈ کے مطابق خوشگوار اور دوستانہ انداز میں بات کرو۔
 
@@ -49,7 +49,7 @@ ${postsList || 'ابھی کوئی post نہیں'}
       headers: {
         'Authorization': `Bearer ${process.env.OPENROUTER_KEY}`,
         'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://mastersapks.blogspot.com',
+        'HTTP-Referer': 'https://apkdoon.blogspot.com',
         'X-Title': 'Zam GPT'
       },
       body: JSON.stringify({
